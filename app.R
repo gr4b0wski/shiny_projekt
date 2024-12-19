@@ -69,9 +69,9 @@ ui <- navbarPage(
   "Chess Stats",
   id = "player",
   tabPanel(
-    "Wittchen",
+    "gracz 1",
     fluidPage(
-      titlePanel("Statystyki gracza Wittchen"),
+      titlePanel("Statystyki gracza 1"),
       fluidRow(
         column(5, dateRangeInput("dateRangeW", "Wybierz zakres dat:", 
                                  start = min(wittchen_data$date), 
@@ -86,9 +86,9 @@ ui <- navbarPage(
     )
   ),
   tabPanel(
-    "Tadziolul",
+    "gracz 2",
     fluidPage(
-      titlePanel("Statystyki gracza Tadziolul"),
+      titlePanel("Statystyki gracza 2"),
       fluidRow(
         column(5, dateRangeInput("dateRangeT", "Wybierz zakres dat:", 
                                  start = min(tadziolul_data$date), 
@@ -108,7 +108,10 @@ ui <- navbarPage(
 server <- function(input, output, session) {
   
   render_player_data <- function(data, dateRangeInput, openingInput, statsOutput, plotOutput) {
-    filteredData <- reactive({
+    library(dplyr) # Do agregacji danych
+    
+    # Dane do statystyk
+    filteredDataStats <- reactive({
       data_filtered <- data[data$date >= input[[dateRangeInput]][1] &
                               data$date <= input[[dateRangeInput]][2], ]
       if (input[[openingInput]] != "all") {
@@ -117,8 +120,18 @@ server <- function(input, output, session) {
       data_filtered
     })
     
+    # Dane do wykresu
+    filteredDataPlot <- reactive({
+      data_filtered <- filteredDataStats()
+      data_filtered <- data_filtered %>%
+        group_by(date) %>%
+        filter(row_number(desc(date)) == 1) %>% # Ostatni wpis dla każdej daty
+        ungroup()
+      data_filtered
+    })
+    
     output[[statsOutput]] <- renderUI({
-      data_filtered <- filteredData()
+      data_filtered <- filteredDataStats() # Używamy danych do statystyk
       won <- sum((data_filtered$result == "1-0" & data_filtered$white == data_filtered$white[1]) |
                    (data_filtered$result == "0-1" & data_filtered$black == data_filtered$black[1]))
       draw <- sum(data_filtered$result == "1/2-1/2")
@@ -130,22 +143,22 @@ server <- function(input, output, session) {
     })
     
     output[[plotOutput]] <- renderPlotly({
-      data_filtered <- filteredData()
+      data_filtered <- filteredDataPlot() # Używamy danych do wykresu
       plot <- ggplot(data_filtered, aes(x = date, y = elo)) +
         geom_line(color = "black", linewidth = 0.5) +
         geom_point(aes(
           text = paste0(
             "Data: ", date, "<br>",
-            "Ranking: ", elo, "<br>",
-            "Result: ", result
+            "Ranking: ", elo
           )
         ), color = "black", size = 1.5) +
-        labs(x = "Data", y = "Ranking", title = paste("Ranking gracza", input$id)) +
+        labs(x = "Data", y = "Ranking", title = paste("Wykres rankingu")) +
         theme_minimal()
       ggplotly(plot, tooltip = "text") %>%
         layout(hoverlabel = list(align = "left"))
     })
   }
+  
   
   render_player_data(wittchen_data, "dateRangeW", "openingW", "statsW", "ratingPlotW")
   render_player_data(tadziolul_data, "dateRangeT", "openingT", "statsT", "ratingPlotT")
