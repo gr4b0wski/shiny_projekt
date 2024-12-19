@@ -67,6 +67,7 @@ tadziolul_data <- load_data("lichess_tadziolul_2024-12-18.pgn", "tadziolul")
 # UI
 ui <- navbarPage(
   "Chess Stats",
+  id = "player",
   tabPanel(
     "Wittchen",
     fluidPage(
@@ -139,7 +140,7 @@ server <- function(input, output, session) {
             "Result: ", result
           )
         ), color = "black", size = 1.5) +
-        labs(x = "Data", y = "Ranking", title = paste("Ranking gracza", data_filtered$white[1])) +
+        labs(x = "Data", y = "Ranking", title = paste("Ranking gracza", input$id)) +
         theme_minimal()
       ggplotly(plot, tooltip = "text") %>%
         layout(hoverlabel = list(align = "left"))
