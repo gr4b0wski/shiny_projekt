@@ -82,7 +82,17 @@ ui <- navbarPage(
                               choices = c("Wszystkie" = "all", unique(wittchen_data$opening)))),
         column(4, htmlOutput("statsW"))
       ),
-      plotlyOutput("ratingPlotW", height = "500px")
+      fluidRow(
+        column(12, class="text-center", uiOutput("gifW"))
+      ),
+      plotlyOutput("ratingPlotW", height = "300px"),
+      fluidRow(
+        column(6, plotlyOutput("winRateW", height = "300px")),
+        column(6, htmlOutput("seriesW"))
+      ),
+      fluidRow(
+        column(6, htmlOutput("topResultsW"))
+      )
     )
   ),
   tabPanel(
@@ -99,7 +109,17 @@ ui <- navbarPage(
                               choices = c("Wszystkie" = "all", unique(tadziolul_data$opening)))),
         column(4, htmlOutput("statsT"))
       ),
-      plotlyOutput("ratingPlotT", height = "500px")
+      fluidRow(
+        column(12, class="text-center", uiOutput("gifT"))
+      ),
+      plotlyOutput("ratingPlotT", height = "300px"),
+      fluidRow(
+        column(6, plotlyOutput("winRateT", height = "300px")),
+        column(6, htmlOutput("seriesT"))
+      ),
+      fluidRow(
+        column(6, htmlOutput("topResultsT"))
+      )
     )
   )
 )
@@ -107,8 +127,10 @@ ui <- navbarPage(
 # Server
 server <- function(input, output, session) {
   
-  render_player_data <- function(data, dateRangeInput, openingInput, statsOutput, plotOutput) {
-    library(dplyr) # Do agregacji danych
+  render_player_data <- function(data, dateRangeInput, openingInput, statsOutput, 
+                                 plotOutput, winRateOutput, seriesOutput, 
+                                 topResultsOutput, gifOutput) {
+    library(dplyr)
     
     # Dane do statystyk
     filteredDataStats <- reactive({
@@ -125,7 +147,7 @@ server <- function(input, output, session) {
       data_filtered <- filteredDataStats()
       data_filtered <- data_filtered %>%
         group_by(date) %>%
-        filter(row_number(desc(date)) == 1) %>% # Ostatni wpis dla każdej daty
+        filter(row_number(desc(date)) == 1) %>%
         ungroup()
       data_filtered
     })
@@ -144,24 +166,94 @@ server <- function(input, output, session) {
     
     output[[plotOutput]] <- renderPlotly({
       data_filtered <- filteredDataPlot() # Używamy danych do wykresu
-      plot <- ggplot(data_filtered, aes(x = date, y = elo)) +
-        geom_line(color = "black", linewidth = 0.5) +
-        geom_point(aes(
-          text = paste0(
-            "Data: ", date, "<br>",
-            "Ranking: ", elo
-          )
-        ), color = "black", size = 1.5) +
-        labs(x = "Data", y = "Ranking", title = paste("Wykres rankingu")) +
-        theme_minimal()
-      ggplotly(plot, tooltip = "text") %>%
+      
+      # Interpolacja danych (zwiększenie liczby punktów)
+      interpolated_data <- data.frame(
+        date = seq(min(data_filtered$date), max(data_filtered$date), by = "1 day")
+      )
+      interpolated_data$elo <- approx(
+        x = as.numeric(data_filtered$date),
+        y = data_filtered$elo,
+        xout = as.numeric(interpolated_data$date)
+      )$y
+      
+      # Tworzenie wykresu
+      plot <- ggplot(interpolated_data, aes(x = date, y = elo)) +
+        geom_line(color = "blue", linewidth = 0.4) + # Płynna linia
+        geom_point(data = data_filtered, aes(x = date, y = elo, 
+                                             text = paste0(
+                                               "Data: ", date, "<br>",
+                                               "Ranking: ", elo
+                                             )),
+                   color = "blue", size = 0.2) + # Kropki na podstawowych danych
+        geom_ribbon(aes(ymin = min(data_filtered$elo), ymax = elo), 
+                    fill = "blue", alpha = 0.2) + # Gradient pod linią
+        labs(x = "Data", y = "Ranking", title = "Wykres rankingu") +
+        theme_minimal() +
+        scale_y_continuous(limits = c(min(data_filtered$elo), NA)) # Zakres osi Y od minimalnego rankingu
+      
+      # Dodanie interaktywności
+      ggplotly(plot, tooltip = c("x", "y")) %>%
         layout(hoverlabel = list(align = "left"))
+    })
+  
+    
+    # Win Rate
+    output[[winRateOutput]] <- renderPlotly({
+      data_filtered <- filteredDataStats()
+      won <- sum((data_filtered$result == "1-0" & data_filtered$white == data_filtered$white[1]) |
+                   (data_filtered$result == "0-1" & data_filtered$black == data_filtered$black[1]))
+      total <- nrow(data_filtered)
+      win_rate <- round((won / total) * 100, 1)
+      plot_ly(
+        type = "pie",
+        values = c(win_rate, 100 - win_rate),
+        labels = c("Wygrane", "Pozostałe"),
+        marker = list(colors = c("green", "gray")),
+        hole = 0.6
+      ) %>% layout(showlegend = FALSE, title = paste("Win Rate:", win_rate, "%"))
+    })
+    
+    # Najdłuższa seria zwycięstw/przegranych
+    output[[seriesOutput]] <- renderUI({
+      data_filtered <- filteredDataStats()
+      results <- ifelse((data_filtered$result == "1-0" & data_filtered$white == data_filtered$white[1]) |
+                          (data_filtered$result == "0-1" & data_filtered$black == data_filtered$black[1]), "W",
+                        ifelse(data_filtered$result == "1/2-1/2", "D", "L"))
+      longest_win_streak <- max(rle(results)$lengths[rle(results)$values == "W"], na.rm = TRUE)
+      longest_loss_streak <- max(rle(results)$lengths[rle(results)$values == "L"], na.rm = TRUE)
+      HTML(paste("<b>Najdłuższa seria zwycięstw:</b>", longest_win_streak, "<br>",
+                 "<b>Najdłuższa seria porażek:</b>", longest_loss_streak))
+    })
+    
+    # 5 najwyższych zwycięstw i 5 najniższych porażek
+    output[[topResultsOutput]] <- renderUI({
+      data_filtered <- filteredDataStats()
+      wins <- data_filtered[((data_filtered$result == "1-0" & data_filtered$white == data_filtered$white[1]) |
+                               (data_filtered$result == "0-1" & data_filtered$black == data_filtered$black[1])), ]
+      losses <- data_filtered[((data_filtered$result == "0-1" & data_filtered$white == data_filtered$white[1]) |
+                                 (data_filtered$result == "1-0" & data_filtered$black == data_filtered$black[1])), ]
+      top_wins <- wins[order(-as.numeric(wins$elo)), ][1:5, ]
+      top_losses <- losses[order(as.numeric(losses$elo)), ][1:5, ]
+      HTML(paste("<b>5 najwyższych zwycięstw:</b><br>", paste(top_wins$elo, collapse = ", "), "<br>",
+                 "<b>5 najniższych porażek:</b><br>", paste(top_losses$elo, collapse = ", ")))
+    })
+    
+    # Gify z otwarciami
+    output[[gifOutput]] <- renderUI({
+      opening <- input[[openingInput]]
+      if (opening == "all") {
+        return(NULL)
+      }
+      tags$img(src = paste0(opening, ".gif"), height = "300px")
     })
   }
   
-  
-  render_player_data(wittchen_data, "dateRangeW", "openingW", "statsW", "ratingPlotW")
-  render_player_data(tadziolul_data, "dateRangeT", "openingT", "statsT", "ratingPlotT")
+  # Renderowanie danych dla graczy
+  render_player_data(wittchen_data, "dateRangeW", "openingW", "statsW", 
+                     "ratingPlotW", "winRateW", "seriesW", "topResultsW", "gifW")
+  render_player_data(tadziolul_data, "dateRangeT", "openingT", "statsT", 
+                     "ratingPlotT", "winRateT", "seriesT", "topResultsT", "gifT")
 }
 
 # Run app
