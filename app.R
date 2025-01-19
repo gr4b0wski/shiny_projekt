@@ -75,8 +75,8 @@ load_data <- function(filepath, player_name) {
 }
 
 # Załaduj dane graczy
-wittchen_data <- load_data("lichess_wittchen_2024-12-18.pgn", "wittchen")
-tadziolul_data <- load_data("lichess_tadziolul_2024-12-18.pgn", "tadziolul")
+wittchen_data <- load_data("www/lichess_wittchen_2024-12-18.pgn", "wittchen")
+tadziolul_data <- load_data("www/lichess_tadziolul_2024-12-18.pgn", "tadziolul")
 
 # Funkcja do analizy pola matów
 get_mate_square <- function(moves) {
@@ -183,9 +183,9 @@ ui <- navbarPage(
     )
   ),
   tabPanel(
-    "Gracz 1 - statystyki",
+    "Gabriel - statystyki",
     fluidPage(
-      titlePanel("Gracz 1 - statystyki"),
+      titlePanel("Gabriel - statystyki"),
       fluidRow(
         column(12, dateRangeInput("dateRangeW", "Wybierz zakres dat:", 
                                  start = min(wittchen_data$date), 
@@ -221,9 +221,9 @@ ui <- navbarPage(
     )
   ),
   tabPanel(
-    "Gracz 2 - statystyki",
+    "Kuba - statystyki",
     fluidPage(
-      titlePanel("Gracz 2 - statystyki"),
+      titlePanel("Kuba - statystyki"),
       fluidRow(
         column(12, dateRangeInput("dateRangeT", "Wybierz zakres dat:", 
                                  start = min(tadziolul_data$date), 
@@ -659,8 +659,8 @@ server <- function(input, output, session) {
   output[["aboutW"]] <- renderUI({
     
     HTML(paste(
-      "<div>",
-      "<h3 style='text-align: center;'>Gracz 1</h3>",
+      "<div style='margin-left:70px;'>",
+      "<h3 style='text-align: center; font-weight: bold;'>Gabriel</h3>",
       "<div class='container' style='display: flex; justify-content: center; width: 50%; padding-bottom: 30px;'>",
       "<img src='grabus.jpg' width=60%>",
       "</div>",
@@ -675,8 +675,8 @@ server <- function(input, output, session) {
   output[["aboutT"]] <- renderUI({
     
     HTML(paste(
-      "<div>",
-      "<h3 style='text-align: center;'>Gracz 2</h3>",
+      "<div style='margin-right:70px;'>",
+      "<h3 style='text-align: center; font-weight: bold;'>Kuba</h3>",
       "<div class='container' style='display: flex; justify-content: center; width: 50%; padding-bottom: 30px;'>",
       "<img src='miszczu.jpg' width=60%>",
       "</div>",
@@ -692,7 +692,7 @@ server <- function(input, output, session) {
   output[["aboutA"]] <- renderUI({
     
     HTML(paste(
-      "<div>",
+      "<div style='margin-left: 70px; margin-right: 70px; padding-top: 40px;'>",
       "<h2 style='text-align: center;'>O aplikacji</h2>",
       "W 2024 roku postanowiliśmy zająć się luźną, a zarazem fascynującą analizą naszych szachowych gier, które", 
       "rozegraliśmy na popularnej platformie lichess.org. Skupiliśmy się na partiach w tempie błyskawicznym, co pozwalało", 
