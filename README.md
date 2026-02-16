@@ -49,9 +49,3 @@ To create smooth and realistic Elo rating progression charts, the app uses const
    ```R
    shiny::runApp()
    ```
-
-## Dashboard Preview
-
-*(Below is a preview of the interactive dashboard)*
-
-![Dashboard Preview](preview.png)
