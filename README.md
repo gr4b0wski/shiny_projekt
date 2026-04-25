@@ -37,7 +37,7 @@ To create smooth and realistic Elo rating progression charts, the app uses const
 
 1. Clone the repository:
    ```bash
-   git clone [https://github.com/yourusername/lichess_shiny_dashboard.git](https://github.com/yourusername/lichess_shiny_dashboard.git)
+   git clone [https://github.com/gr4b0wski/lichess_shiny_dashboard.git](https://github.com/gr4b0wski/lichess_shiny_dashboard.git)
    ```
 2. Open RStudio or your preferred R environment.
 3. Ensure you have the required packages installed:
