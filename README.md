@@ -4,6 +4,9 @@ An interactive web application built with R and Shiny for deep statistical analy
 
 Unlike standard chess trackers, this project features a **custom-built PGN (Portable Game Notation) parser** utilizing Regular Expressions (RegEx) to extract non-standard data points, such as mating squares, mating pieces, and advanced streak calculations, without relying on external chess libraries.
 <img src="shiny1.png">
+<img src="shiny2.png">
+<img src="shiny3.png">
+<img src="shiny4.png">
 
 ## Key Features & Analytics
 
